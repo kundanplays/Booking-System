@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Upload CSV - Booking System{% endblock %}
+
+{% block content %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Upload CSV Data</h1>
+            <p class="lead">Upload members and inventory data using CSV files.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Upload CSV File</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('upload_csv') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select CSV File</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                            <div class="form-text">
+                                Use 'members.csv' for member data or 'inventory.csv' for inventory data.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Expected CSV Formats</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Members CSV (members.csv)</h6>
+                    <p>Columns: first_name, last_name, email, phone</p>
+                    <pre>first_name,last_name,email,phone
+John,Doe,john.doe@example.com,123-456-7890
+Jane,Smith,jane.smith@example.com,098-765-4321</pre>
+
+                    <hr>
+
+                    <h6>Inventory CSV (inventory.csv)</h6>
+                    <p>Columns: name, description, total_count, remaining_count</p>
+                    <pre>name,description,total_count,remaining_count
+Concert Tickets,VIP access to annual concert,100,100
+Cooking Class,Gourmet cooking class with Chef Alex,20,20</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %} 

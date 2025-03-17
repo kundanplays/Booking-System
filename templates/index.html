@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Booking System{% endblock %}
+
+{% block content %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Booking System Dashboard</h1>
+            <p class="lead">Welcome to the booking system. Here you can manage bookings for inventory items.</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Members</h5>
+                </div>
+                <div class="card-body">
+                    {% if members %}
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Active Bookings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in members %}
+                                    <tr>
+                                        <td>{{ member.id }}</td>
+                                        <td>{{ member.first_name }} {{ member.last_name }}</td>
+                                        <td>{{ member.email }}</td>
+                                        <td>
+                                            {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
+                                            {{ active_bookings|length }}/2
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>No members found. <a href="{{ url_for('upload_csv') }}">Upload members CSV</a> to get started.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Inventory</h5>
+                </div>
+                <div class="card-body">
+                    {% if inventory %}
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Availability</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventory %}
+                                    <tr>
+                                        <td>{{ item.id }}</td>
+                                        <td>{{ item.name }}</td>
+                                        <td>{{ item.remaining_count }}/{{ item.total_count }}</td>
+                                        <td>
+                                            <button 
+                                                class="btn btn-sm btn-primary book-item" 
+                                                data-id="{{ item.id }}" 
+                                                data-name="{{ item.name }}"
+                                                {% if item.remaining_count <= 0 %}disabled{% endif %}
+                                            >
+                                                Book
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>No inventory found. <a href="{{ url_for('upload_csv') }}">Upload inventory CSV</a> to get started.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Active Bookings</h5>
+                </div>
+                <div class="card-body">
+                    {% if bookings %}
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Member</th>
+                                    <th>Item</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in bookings %}
+                                    {% if booking.is_active %}
+                                        <tr>
+                                            <td>{{ booking.booking_reference }}</td>
+                                            <td>{{ booking.member.first_name }} {{ booking.member.last_name }}</td>
+                                            <td>{{ booking.inventory.name }}</td>
+                                            <td>{{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>
+                                                {% if booking.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Cancelled</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button 
+                                                    class="btn btn-sm btn-danger cancel-booking" 
+                                                    data-reference="{{ booking.booking_reference }}"
+                                                    {% if not booking.is_active %}disabled{% endif %}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>No active bookings found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal fade" id="bookingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Book Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookingForm">
+                        <input type="hidden" id="inventory_id" name="inventory_id">
+                        <div class="mb-3">
+                            <label for="inventory_name" class="form-label">Item</label>
+                            <input type="text" class="form-control" id="inventory_name" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="member_id" class="form-label">Member</label>
+                            <select class="form-control" id="member_id" name="member_id" required>
+                                <option value="">Select a member</option>
+                                {% for member in members %}
+                                    {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
+                                    {% if active_bookings|length < 2 %}
+                                        <option value="{{ member.id }}">{{ member.first_name }} {{ member.last_name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitBooking">Book</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Booking modal
+        const bookingModal = new bootstrap.Modal(document.getElementById('bookingModal'));
+        
+        // Book item buttons
+        document.querySelectorAll('.book-item').forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                
+                document.getElementById('inventory_id').value = id;
+                document.getElementById('inventory_name').value = name;
+                
+                bookingModal.show();
+            });
+        });
+        
+        // Submit booking
+        document.getElementById('submitBooking').addEventListener('click', function() {
+            const inventoryId = document.getElementById('inventory_id').value;
+            const memberId = document.getElementById('member_id').value;
+            
+            if (!memberId) {
+                alert('Please select a member');
+                return;
+            }
+            
+            fetch('/book', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    member_id: memberId,
+                    inventory_id: inventoryId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    bookingModal.hide();
+                    alert('Booking successful! Reference: ' + data.booking_reference);
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing the booking');
+            });
+        });
+        
+        // Cancel booking
+        document.querySelectorAll('.cancel-booking').forEach(button => {
+            button.addEventListener('click', function() {
+                const reference = this.getAttribute('data-reference');
+                
+                if (confirm('Are you sure you want to cancel this booking?')) {
+                    fetch('/cancel', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            booking_reference: reference
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('Booking cancelled successfully');
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while cancelling the booking');
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 
