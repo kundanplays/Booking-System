@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Booking System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Admin Panel</h1>
+            <p class="lead">Manage all aspects of the booking system</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Members</h5>
+                    <h2>{{ stats.total_members }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Inventory</h5>
+                    <h2>{{ stats.total_inventory }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Items Available</h5>
+                    <h2>{{ stats.available_items }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Bookings</h5>
+                    <h2>{{ stats.total_bookings }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Active Bookings</h5>
+                    <h2>{{ stats.active_bookings }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Expired Items</h5>
+                    <h2>{{ stats.expired_items }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button" role="tab">Members</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab">Inventory</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">Bookings</button>
+                </li>
+            </ul>
+            <div class="tab-content p-3 border border-top-0 rounded-bottom">
+                <!-- Members Tab -->
+                <div class="tab-pane fade show active" id="members" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Members Management</h3>
+                        <div>
+                            <a href="{{ url_for('upload_csv') }}" class="btn btn-primary me-2">Upload Members CSV</a>
+                            <button id="delete-selected-members" class="btn btn-danger" disabled>Delete Selected</button>
+                        </div>
+                    </div>
+                    <form id="bulk-delete-members-form" action="{{ url_for('delete_multiple_members') }}" method="post">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <div class="form-check">
+                                                <input class="form-check-input select-all-members" type="checkbox" id="select-all-members">
+                                                <label class="form-check-label" for="select-all-members"></label>
+                                            </div>
+                                        </th>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Contact</th>
+                                        <th>Joined</th>
+                                        <th>Bookings</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in members %}
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input member-checkbox" type="checkbox" name="member_ids" value="{{ member.id }}" id="member-{{ member.id }}">
+                                                <label class="form-check-label" for="member-{{ member.id }}"></label>
+                                            </div>
+                                        </td>
+                                        <td>{{ member.id }}</td>
+                                        <td>{{ member.first_name }} {{ member.last_name }}</td>
+                                        <td>
+                                            {% if member.email %}
+                                                <strong>Email:</strong> {{ member.email }}<br>
+                                            {% endif %}
+                                            {% if member.phone %}
+                                                <strong>Phone:</strong> {{ member.phone }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if member.date_joined %}
+                                                {{ member.date_joined.strftime('%Y-%m-%d') }}
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if member.booking_count is not none %}
+                                                <span class="badge bg-info">{{ member.booking_count }}/{{ MAX_BOOKINGS }}</span>
+                                            {% else %}
+                                                {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
+                                                <span class="badge bg-info">{{ active_bookings|length }}/{{ MAX_BOOKINGS }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <form action="{{ url_for('delete_member', member_id=member.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this member? This will also remove all their bookings.');">
+                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Inventory Tab -->
+                <div class="tab-pane fade" id="inventory" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Inventory Management</h3>
+                        <div>
+                            <a href="{{ url_for('upload_csv') }}" class="btn btn-primary me-2">Upload Inventory CSV</a>
+                            <button id="delete-selected-inventory" class="btn btn-danger" disabled>Delete Selected</button>
+                        </div>
+                    </div>
+                    <form id="bulk-delete-inventory-form" action="{{ url_for('delete_multiple_inventory') }}" method="post">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <div class="form-check">
+                                                <input class="form-check-input select-all-inventory" type="checkbox" id="select-all-inventory">
+                                                <label class="form-check-label" for="select-all-inventory"></label>
+                                            </div>
+                                        </th>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Availability</th>
+                                        <th>Expiration</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in inventory %}
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input inventory-checkbox" type="checkbox" name="inventory_ids" value="{{ item.id }}" id="inventory-{{ item.id }}">
+                                                <label class="form-check-label" for="inventory-{{ item.id }}"></label>
+                                            </div>
+                                        </td>
+                                        <td>{{ item.id }}</td>
+                                        <td>{{ item.name }}</td>
+                                        <td>
+                                            <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                                                {{ item.description }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="progress">
+                                                {% set percentage = (item.remaining_count / item.total_count * 100) if item.total_count > 0 else 0 %}
+                                                <div class="progress-bar {% if percentage < 30 %}bg-danger{% elif percentage < 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                                    role="progressbar" style="width: {{ percentage }}%">
+                                                    {{ item.remaining_count }}/{{ item.total_count }}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if item.expiration_date %}
+                                                {% if item.expiration_date < now().date() %}
+                                                    <span class="badge bg-danger">Expired</span>
+                                                {% else %}
+                                                    {{ item.expiration_date.strftime('%Y-%m-%d') }}
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <form action="{{ url_for('delete_inventory', inventory_id=item.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this inventory item? This will also cancel all related bookings.');">
+                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Bookings Tab -->
+                <div class="tab-pane fade" id="bookings" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Bookings Management</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Member</th>
+                                    <th>Item</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in bookings %}
+                                <tr>
+                                    <td>{{ booking.booking_reference }}</td>
+                                    <td>{{ booking.member.first_name }} {{ booking.member.last_name }}</td>
+                                    <td>{{ booking.inventory.name }}</td>
+                                    <td>{{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if booking.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Members bulk selection handling
+        const selectAllMembers = document.querySelector('.select-all-members');
+        const memberCheckboxes = document.querySelectorAll('.member-checkbox');
+        const deleteSelectedMembersBtn = document.getElementById('delete-selected-members');
+        const membersForm = document.getElementById('bulk-delete-members-form');
+
+        // Handle select all for members
+        if (selectAllMembers) {
+            selectAllMembers.addEventListener('change', function() {
+                const isChecked = this.checked;
+                memberCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+                updateDeleteMembersButton();
+            });
+        }
+
+        // Handle individual member checkboxes
+        memberCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateDeleteMembersButton);
+        });
+
+        // Update delete members button state
+        function updateDeleteMembersButton() {
+            const checkedCount = document.querySelectorAll('.member-checkbox:checked').length;
+            deleteSelectedMembersBtn.disabled = checkedCount === 0;
+        }
+
+        // Handle delete selected members button
+        if (deleteSelectedMembersBtn) {
+            deleteSelectedMembersBtn.addEventListener('click', function() {
+                const checkedCount = document.querySelectorAll('.member-checkbox:checked').length;
+                if (checkedCount > 0 && confirm(`Are you sure you want to delete ${checkedCount} selected member(s)? This will also remove all their bookings.`)) {
+                    membersForm.submit();
+                }
+            });
+        }
+
+        // Inventory bulk selection handling
+        const selectAllInventory = document.querySelector('.select-all-inventory');
+        const inventoryCheckboxes = document.querySelectorAll('.inventory-checkbox');
+        const deleteSelectedInventoryBtn = document.getElementById('delete-selected-inventory');
+        const inventoryForm = document.getElementById('bulk-delete-inventory-form');
+
+        // Handle select all for inventory
+        if (selectAllInventory) {
+            selectAllInventory.addEventListener('change', function() {
+                const isChecked = this.checked;
+                inventoryCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+                updateDeleteInventoryButton();
+            });
+        }
+
+        // Handle individual inventory checkboxes
+        inventoryCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateDeleteInventoryButton);
+        });
+
+        // Update delete inventory button state
+        function updateDeleteInventoryButton() {
+            const checkedCount = document.querySelectorAll('.inventory-checkbox:checked').length;
+            deleteSelectedInventoryBtn.disabled = checkedCount === 0;
+        }
+
+        // Handle delete selected inventory button
+        if (deleteSelectedInventoryBtn) {
+            deleteSelectedInventoryBtn.addEventListener('click', function() {
+                const checkedCount = document.querySelectorAll('.inventory-checkbox:checked').length;
+                if (checkedCount > 0 && confirm(`Are you sure you want to delete ${checkedCount} selected inventory item(s)? This will also cancel all related bookings.`)) {
+                    inventoryForm.submit();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

@@ -7,7 +7,7 @@ from datetime import datetime, date
 import uuid
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///booking_new.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.secret_key = 'some_secret_key'
@@ -28,8 +28,6 @@ class Member(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100))
-    phone = db.Column(db.String(20))
     booking_count = db.Column(db.Integer, default=0)
     date_joined = db.Column(db.DateTime)
     bookings = db.relationship('Booking', backref='member', lazy=True)
@@ -66,19 +64,40 @@ def parse_date(date_str):
     if not date_str:
         return None
     
+    print(f"Trying to parse date: {date_str}")
+    
     # Try ISO format (2024-01-02T12:10:11)
     try:
         return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-    except ValueError:
+    except (ValueError, TypeError) as e:
+        print(f"ISO parse error: {e}")
         pass
     
     # Try DD/MM/YYYY format
     try:
         day, month, year = date_str.split('/')
         return date(int(year), int(month), int(day))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        print(f"DD/MM/YYYY parse error: {e}")
         pass
     
+    # Try YYYY-MM-DD format
+    try:
+        year, month, day = date_str.split('-')
+        return date(int(year), int(month), int(day))
+    except (ValueError, TypeError) as e:
+        print(f"YYYY-MM-DD parse error: {e}")
+        pass
+    
+    # Try to parse with dateutil as a last resort
+    try:
+        from dateutil import parser
+        return parser.parse(date_str)
+    except (ImportError, ValueError, TypeError) as e:
+        print(f"dateutil parse error: {e}")
+        pass
+    
+    print(f"Could not parse date: {date_str}")
     return None
 
 # Routes
@@ -107,30 +126,45 @@ def upload_csv():
                 csv_reader = csv.DictReader(f)
                 headers = csv_reader.fieldnames
                 
+                # Debug headers
+                print(f"CSV Headers: {headers}")
+
                 # Detect format type
-                if 'name' in headers and 'surname' in headers:
+                # if 'name' in headers and 'surname' in headers:
                     # Appendix 1 format
-                    for row in csv_reader:
-                        # Convert booking_count to integer or default to 0
+                for row in csv_reader:
+                    print(f"Processing row: {row}")  # Debug
+                    print(row)
+                    # Convert booking_count to integer or default to 0
+                    try:
                         booking_count = int(row.get('booking_count', 0)) if row.get('booking_count', '').strip() else 0
-                        
-                        member = Member(
-                            first_name=row.get('name', '').strip(),
-                            last_name=row.get('surname', '').strip(),
-                            booking_count=booking_count,
-                            date_joined=parse_date(row.get('date_joined'))
-                        )
-                        db.session.add(member)
-                else:
-                    # Original format
-                    for row in csv_reader:
-                        member = Member(
-                            first_name=row.get('first_name', '').strip(),
-                            last_name=row.get('last_name', '').strip(),
-                            email=row.get('email', '').strip(),
-                            phone=row.get('phone', '').strip()
-                        )
-                        db.session.add(member)
+                    except ValueError:
+                        booking_count = 0
+                        print(f"Invalid booking_count value: {row.get('booking_count')}")
+
+                    # Parse date
+                    date_joined = parse_date(row.get('date_joined'))
+                    if not date_joined and row.get('date_joined'):
+                        print(f"Failed to parse date: {row.get('date_joined')}")
+
+                    member = Member(
+                        first_name=row.get('name', '').strip(),
+                        last_name=row.get('surname', '').strip(),
+                        booking_count=booking_count,
+                        date_joined=date_joined
+                    )
+                    db.session.add(member)
+                # else:
+                #     # Original format
+                #     for row in csv_reader:
+                #         print(f"Processing row: {row}")  # Debug
+                #         member = Member(
+                #             first_name=row.get('name', '').strip(),
+                #             last_name=row.get('last_name', '').strip(),
+                #             email=row.get('email', '').strip(),
+                #             phone=row.get('phone', '').strip()
+                #         )
+                #         db.session.add(member)
             
             db.session.commit()
             flash('Members data uploaded successfully', 'success')
@@ -141,30 +175,21 @@ def upload_csv():
                 headers = csv_reader.fieldnames
                 
                 # Detect format type
-                if 'title' in headers:
+                # if 'title' in headers:
                     # Appendix 2 format
-                    for row in csv_reader:
-                        # For this format, we'll set total_count same as remaining_count initially
-                        remaining_count = int(row.get('remaining_count', 0)) if row.get('remaining_count', '').strip() else 0
-                        
-                        inventory = Inventory(
-                            name=row.get('title', '').strip(),
-                            description=row.get('description', '').strip(),
-                            remaining_count=remaining_count,
-                            total_count=remaining_count,  # Setting total same as remaining for this format
-                            expiration_date=parse_date(row.get('expiration_date'))
-                        )
-                        db.session.add(inventory)
-                else:
-                    # Original format
-                    for row in csv_reader:
-                        inventory = Inventory(
-                            name=row.get('name', '').strip(),
-                            description=row.get('description', '').strip(),
-                            total_count=int(row.get('total_count', 0)) if row.get('total_count', '').strip() else 0,
-                            remaining_count=int(row.get('remaining_count', 0)) if row.get('remaining_count', '').strip() else 0
-                        )
-                        db.session.add(inventory)
+                for row in csv_reader:
+                    # For this format, we'll set total_count same as remaining_count initially
+                    remaining_count = int(row.get('remaining_count', 0)) if row.get('remaining_count', '').strip() else 0
+
+                    inventory = Inventory(
+                        name=row.get('title', '').strip(),
+                        description=row.get('description', '').strip(),
+                        remaining_count=remaining_count,
+                        # total_count=remaining_count,  # Setting total same as remaining for this format
+                        expiration_date=parse_date(row.get('expiration_date'))
+                    )
+                    db.session.add(inventory)
+            
             
             db.session.commit()
             flash('Inventory data uploaded successfully', 'success')
@@ -292,7 +317,142 @@ def get_bookings():
     } for booking in bookings]
     return jsonify(bookings_list)
 
+@app.route('/admin')
+def admin_panel():
+    """Admin panel to manage all aspects of the booking system."""
+    members = Member.query.all()
+    inventory = Inventory.query.all()
+    bookings = Booking.query.all()
+    
+    # Count statistics
+    stats = {
+        'total_members': len(members),
+        'total_inventory': len(inventory),
+        'total_bookings': len(bookings),
+        'active_bookings': len([b for b in bookings if b.is_active]),
+        'available_items': sum(item.remaining_count for item in inventory),
+        'expired_items': len([i for i in inventory if i.expiration_date and i.expiration_date < date.today()])
+    }
+    
+    return render_template(
+        'admin.html', 
+        members=members, 
+        inventory=inventory, 
+        bookings=bookings, 
+        stats=stats
+    )
+
+@app.route('/admin/delete_member/<int:member_id>', methods=['POST'])
+def delete_member(member_id):
+    """Delete a member and their bookings."""
+    member = Member.query.get(member_id)
+    if member:
+        # First check if member has active bookings
+        active_bookings = Booking.query.filter_by(member_id=member_id, is_active=True).all()
+        
+        # Return inventory items
+        for booking in active_bookings:
+            inventory = Inventory.query.get(booking.inventory_id)
+            if inventory:
+                inventory.remaining_count += 1
+        
+        # Delete all bookings for this member
+        Booking.query.filter_by(member_id=member_id).delete()
+        
+        # Delete the member
+        db.session.delete(member)
+        db.session.commit()
+        flash(f'Member {member.first_name} {member.last_name} deleted successfully', 'success')
+    else:
+        flash('Member not found', 'error')
+    
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/delete_inventory/<int:inventory_id>', methods=['POST'])
+def delete_inventory(inventory_id):
+    """Delete an inventory item and cancel related bookings."""
+    inventory = Inventory.query.get(inventory_id)
+    if inventory:
+        # Cancel all active bookings for this inventory
+        active_bookings = Booking.query.filter_by(inventory_id=inventory_id, is_active=True).all()
+        for booking in active_bookings:
+            booking.is_active = False
+            member = Member.query.get(booking.member_id)
+            if member and member.booking_count and member.booking_count > 0:
+                member.booking_count -= 1
+        
+        # Delete the inventory item
+        db.session.delete(inventory)
+        db.session.commit()
+        flash(f'Inventory item {inventory.name} deleted successfully', 'success')
+    else:
+        flash('Inventory item not found', 'error')
+    
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/delete_multiple_members', methods=['POST'])
+def delete_multiple_members():
+    """Delete multiple members and their bookings."""
+    member_ids = request.form.getlist('member_ids')
+    
+    if not member_ids:
+        flash('No members selected', 'error')
+        return redirect(url_for('admin_panel'))
+    
+    count = 0
+    for member_id in member_ids:
+        member = Member.query.get(int(member_id))
+        if member:
+            # First check if member has active bookings
+            active_bookings = Booking.query.filter_by(member_id=member_id, is_active=True).all()
+            
+            # Return inventory items
+            for booking in active_bookings:
+                inventory = Inventory.query.get(booking.inventory_id)
+                if inventory:
+                    inventory.remaining_count += 1
+            
+            # Delete all bookings for this member
+            Booking.query.filter_by(member_id=member_id).delete()
+            
+            # Delete the member
+            db.session.delete(member)
+            count += 1
+    
+    db.session.commit()
+    flash(f'{count} members deleted successfully', 'success')
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/delete_multiple_inventory', methods=['POST'])
+def delete_multiple_inventory():
+    """Delete multiple inventory items and cancel related bookings."""
+    inventory_ids = request.form.getlist('inventory_ids')
+    
+    if not inventory_ids:
+        flash('No inventory items selected', 'error')
+        return redirect(url_for('admin_panel'))
+    
+    count = 0
+    for inventory_id in inventory_ids:
+        inventory = Inventory.query.get(int(inventory_id))
+        if inventory:
+            # Cancel all active bookings for this inventory
+            active_bookings = Booking.query.filter_by(inventory_id=inventory_id, is_active=True).all()
+            for booking in active_bookings:
+                booking.is_active = False
+                member = Member.query.get(booking.member_id)
+                if member and member.booking_count and member.booking_count > 0:
+                    member.booking_count -= 1
+            
+            # Delete the inventory item
+            db.session.delete(inventory)
+            count += 1
+    
+    db.session.commit()
+    flash(f'{count} inventory items deleted successfully', 'success')
+    return redirect(url_for('admin_panel'))
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=8080) 
+    app.run(debug=True, port=8000)

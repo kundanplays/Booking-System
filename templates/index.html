@@ -23,7 +23,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
-                                    <th>Contact</th>
+<!--                                    <th>Contact</th>-->
                                     <th>Joined</th>
                                     <th>Bookings</th>
                                 </tr>
@@ -34,26 +34,18 @@
                                         <td>{{ member.id }}</td>
                                         <td>{{ member.first_name }} {{ member.last_name }}</td>
                                         <td>
-                                            {% if member.email %}
-                                                {{ member.email }}<br>
-                                            {% endif %}
-                                            {% if member.phone %}
-                                                {{ member.phone }}
-                                            {% endif %}
-                                        </td>
-                                        <td>
                                             {% if member.date_joined %}
                                                 {{ member.date_joined.strftime('%Y-%m-%d') }}
                                             {% else %}
-                                                N/A
+                                                <span class="text-muted">N/A</span>
                                             {% endif %}
                                         </td>
                                         <td>
                                             {% if member.booking_count is not none %}
-                                                {{ member.booking_count }}/{{ MAX_BOOKINGS }}
+                                                <span class="badge bg-info">{{ member.booking_count }}/{{ MAX_BOOKINGS }}</span>
                                             {% else %}
                                                 {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
-                                                {{ active_bookings|length }}/{{ MAX_BOOKINGS }}
+                                                <span class="badge bg-info">{{ active_bookings|length }}/{{ MAX_BOOKINGS }}</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -79,6 +71,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
+                                    <th>Description</th>
                                     <th>Availability</th>
                                     <th>Expires</th>
                                     <th>Action</th>
@@ -90,10 +83,11 @@
                                         <td>{{ item.id }}</td>
                                         <td>
                                             {{ item.name }}
-                                            <span class="d-inline-block text-truncate" style="max-width: 150px;">
-                                                <small class="text-muted">{{ item.description }}</small>
-                                            </span>
+<!--                                            <span class="d-inline-block text-truncate" style="max-width: 150px;">-->
+<!--                                                -->
+<!--                                            </span>-->
                                         </td>
+                                        <td><small class="text-muted">{{ item.description}}</small></td>
                                         <td>{{ item.remaining_count }}/{{ item.total_count }}</td>
                                         <td>
                                             {% if item.expiration_date %}
