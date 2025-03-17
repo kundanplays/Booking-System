@@ -11,6 +11,7 @@ A Flask web application for managing inventory bookings.
 - Track booking history
 - Enforce booking limits (maximum 2 active bookings per member)
 - Track inventory availability and expiration dates
+- Admin panel for system management with bulk operations
 
 ## Requirements
 
@@ -23,8 +24,8 @@ A Flask web application for managing inventory bookings.
 
 1. Clone the repository
    ```
-   git clone https://github.com/yourusername/booking-system.git
-   cd booking-system
+   git clone https://github.com/kundanplays/Booking-System.git
+   cd Booking-System
    ```
 
 2. Create a virtual environment (optional but recommended)
@@ -50,7 +51,7 @@ A Flask web application for managing inventory bookings.
    python app.py
    ```
 
-3. Open your browser and navigate to http://127.0.0.1:5000/
+3. Open your browser and navigate to http://127.0.0.1:8080/
 
 ## CSV Data Format
 
@@ -98,13 +99,14 @@ Madeira,Island getaway,4,20/11/2030
 - **GET /api/members** - Get all members
 - **GET /api/inventory** - Get all inventory items
 - **GET /api/bookings** - Get all bookings
+- **GET /admin** - Admin panel for system management
 
 ### API Examples
 
 #### Book an Item
 
 ```bash
-curl -X POST http://127.0.0.1:5000/book \
+curl -X POST http://127.0.0.1:8080/book \
   -H "Content-Type: application/json" \
   -d '{"member_id": 1, "inventory_id": 1}'
 ```
@@ -112,7 +114,7 @@ curl -X POST http://127.0.0.1:5000/book \
 #### Cancel a Booking
 
 ```bash
-curl -X POST http://127.0.0.1:5000/cancel \
+curl -X POST http://127.0.0.1:8080/cancel \
   -H "Content-Type: application/json" \
   -d '{"booking_reference": "UUID_REFERENCE_HERE"}'
 ```
