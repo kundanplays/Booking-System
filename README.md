@@ -4,13 +4,13 @@ A Flask web application for managing inventory bookings.
 
 ## Features
 
-- Upload member data via CSV
-- Upload inventory data via CSV
+- Upload member data via CSV (supports multiple formats)
+- Upload inventory data via CSV (supports multiple formats)
 - Book inventory items for members
 - Cancel bookings
 - Track booking history
 - Enforce booking limits (maximum 2 active bookings per member)
-- Track inventory availability
+- Track inventory availability and expiration dates
 
 ## Requirements
 
@@ -40,31 +40,52 @@ A Flask web application for managing inventory bookings.
 
 ## Running the Application
 
-1. Start the Flask development server
+1. Initialize the database with sample data (optional)
+   ```
+   python init_db.py
+   ```
+
+2. Start the Flask development server
    ```
    python app.py
    ```
 
-2. Open your browser and navigate to http://127.0.0.1:5000/
+3. Open your browser and navigate to http://127.0.0.1:5000/
 
 ## CSV Data Format
 
-The application accepts two types of CSV files:
+The application accepts multiple CSV formats:
 
-### Members CSV (members.csv)
+### Members CSV
 
+#### Format 1 (Original)
 ```
 first_name,last_name,email,phone
 John,Doe,john.doe@example.com,123-456-7890
 Jane,Smith,jane.smith@example.com,098-765-4321
 ```
 
-### Inventory CSV (inventory.csv)
+#### Format 2 (Appendix 1)
+```
+name,surname,booking_count,date_joined
+Sophie,Davis,1,2024-01-02T12:10:11
+Emily,Johnson,0,2024-11-12T12:10:12
+```
 
+### Inventory CSV
+
+#### Format 1 (Original)
 ```
 name,description,total_count,remaining_count
 Concert Tickets,VIP access to annual concert,100,100
 Cooking Class,Gourmet cooking class with Chef Alex,20,20
+```
+
+#### Format 2 (Appendix 2)
+```
+title,description,remaining_count,expiration_date
+Bali,Beautiful vacation package,5,19/11/2030
+Madeira,Island getaway,4,20/11/2030
 ```
 
 ## API Endpoints

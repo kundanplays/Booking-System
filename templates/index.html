@@ -23,8 +23,9 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Active Bookings</th>
+                                    <th>Contact</th>
+                                    <th>Joined</th>
+                                    <th>Bookings</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -32,10 +33,28 @@
                                     <tr>
                                         <td>{{ member.id }}</td>
                                         <td>{{ member.first_name }} {{ member.last_name }}</td>
-                                        <td>{{ member.email }}</td>
                                         <td>
-                                            {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
-                                            {{ active_bookings|length }}/2
+                                            {% if member.email %}
+                                                {{ member.email }}<br>
+                                            {% endif %}
+                                            {% if member.phone %}
+                                                {{ member.phone }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if member.date_joined %}
+                                                {{ member.date_joined.strftime('%Y-%m-%d') }}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if member.booking_count is not none %}
+                                                {{ member.booking_count }}/{{ MAX_BOOKINGS }}
+                                            {% else %}
+                                                {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
+                                                {{ active_bookings|length }}/{{ MAX_BOOKINGS }}
+                                            {% endif %}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -61,6 +80,7 @@
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Availability</th>
+                                    <th>Expires</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -68,14 +88,31 @@
                                 {% for item in inventory %}
                                     <tr>
                                         <td>{{ item.id }}</td>
-                                        <td>{{ item.name }}</td>
+                                        <td>
+                                            {{ item.name }}
+                                            <span class="d-inline-block text-truncate" style="max-width: 150px;">
+                                                <small class="text-muted">{{ item.description }}</small>
+                                            </span>
+                                        </td>
                                         <td>{{ item.remaining_count }}/{{ item.total_count }}</td>
+                                        <td>
+                                            {% if item.expiration_date %}
+                                                {% if item.expiration_date < now().date() %}
+                                                    <span class="badge bg-danger">Expired</span>
+                                                {% else %}
+                                                    {{ item.expiration_date.strftime('%Y-%m-%d') }}
+                                                {% endif %}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             <button 
                                                 class="btn btn-sm btn-primary book-item" 
                                                 data-id="{{ item.id }}" 
                                                 data-name="{{ item.name }}"
                                                 {% if item.remaining_count <= 0 %}disabled{% endif %}
+                                                {% if item.expiration_date and item.expiration_date < now().date() %}disabled{% endif %}
                                             >
                                                 Book
                                             </button>
@@ -168,9 +205,15 @@
                             <select class="form-control" id="member_id" name="member_id" required>
                                 <option value="">Select a member</option>
                                 {% for member in members %}
-                                    {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
-                                    {% if active_bookings|length < 2 %}
-                                        <option value="{{ member.id }}">{{ member.first_name }} {{ member.last_name }}</option>
+                                    {% if member.booking_count is not none %}
+                                        {% if member.booking_count < MAX_BOOKINGS %}
+                                            <option value="{{ member.id }}">{{ member.first_name }} {{ member.last_name }}</option>
+                                        {% endif %}
+                                    {% else %}
+                                        {% set active_bookings = member.bookings|selectattr('is_active', 'equalto', true)|list %}
+                                        {% if active_bookings|length < MAX_BOOKINGS %}
+                                            <option value="{{ member.id }}">{{ member.first_name }} {{ member.last_name }}</option>
+                                        {% endif %}
                                     {% endif %}
                                 {% endfor %}
                             </select>

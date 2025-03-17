@@ -22,7 +22,7 @@
                             <label for="file" class="form-label">Select CSV File</label>
                             <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
                             <div class="form-text">
-                                Use 'members.csv' for member data or 'inventory.csv' for inventory data.
+                                File must be named with 'member' or 'inventory' in the filename.
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Upload</button>
@@ -34,22 +34,47 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5>Expected CSV Formats</h5>
+                    <h5>Supported CSV Formats</h5>
                 </div>
                 <div class="card-body">
-                    <h6>Members CSV (members.csv)</h6>
-                    <p>Columns: first_name, last_name, email, phone</p>
-                    <pre>first_name,last_name,email,phone
+                    <nav>
+                        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                            <button class="nav-link active" id="nav-members-tab" data-bs-toggle="tab" data-bs-target="#nav-members" type="button" role="tab">Members</button>
+                            <button class="nav-link" id="nav-inventory-tab" data-bs-toggle="tab" data-bs-target="#nav-inventory" type="button" role="tab">Inventory</button>
+                        </div>
+                    </nav>
+                    <div class="tab-content mt-3" id="nav-tabContent">
+                        <div class="tab-pane fade show active" id="nav-members" role="tabpanel">
+                            <h6>Format 1: Original Members Format</h6>
+                            <p>Columns: first_name, last_name, email, phone</p>
+                            <pre>first_name,last_name,email,phone
 John,Doe,john.doe@example.com,123-456-7890
 Jane,Smith,jane.smith@example.com,098-765-4321</pre>
 
-                    <hr>
+                            <hr>
 
-                    <h6>Inventory CSV (inventory.csv)</h6>
-                    <p>Columns: name, description, total_count, remaining_count</p>
-                    <pre>name,description,total_count,remaining_count
+                            <h6>Format 2: Alternate Members Format</h6>
+                            <p>Columns: name, surname, booking_count, date_joined</p>
+                            <pre>name,surname,booking_count,date_joined
+Sophie,Davis,1,2024-01-02T12:10:11
+Emily,Johnson,0,2024-11-12T12:10:12</pre>
+                        </div>
+                        <div class="tab-pane fade" id="nav-inventory" role="tabpanel">
+                            <h6>Format 1: Original Inventory Format</h6>
+                            <p>Columns: name, description, total_count, remaining_count</p>
+                            <pre>name,description,total_count,remaining_count
 Concert Tickets,VIP access to annual concert,100,100
 Cooking Class,Gourmet cooking class with Chef Alex,20,20</pre>
+
+                            <hr>
+
+                            <h6>Format 2: Alternate Inventory Format</h6>
+                            <p>Columns: title, description, remaining_count, expiration_date</p>
+                            <pre>title,description,remaining_count,expiration_date
+Bali,Beautiful vacation package,5,19/11/2030
+Madeira,Island getaway,4,20/11/2030</pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
